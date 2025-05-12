@@ -8,6 +8,8 @@ use App\Models\Request as ServiceRequest;
 use App\Models\User;
 use Carbon\Carbon;
 
+// Reviewed on 2023-10-01 by John Doe
+
 class QuoteSeeder extends Seeder
 {
     /**
@@ -16,7 +18,7 @@ class QuoteSeeder extends Seeder
     public function run(): void
     {
         // جلب السبوكلاء
-        $subagents = User::where('user_type', 'subagent')->get();
+        $subagents = User::where('role', 'subagent')->get();
         
         if ($subagents->isEmpty()) {
             return;

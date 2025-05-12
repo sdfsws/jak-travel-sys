@@ -22,13 +22,9 @@ class User extends Authenticatable
         'email',
         'password',
         'agency_id',
-        'user_type',
-        'phone',
-        'address',
         'city',
         'country',
         'avatar',
-        'is_active',
         'id_number',
         'passport_number',
         'nationality',
@@ -36,8 +32,9 @@ class User extends Authenticatable
         'notification_preferences',
         'role',
         'status',
-        'profile_photo',
-        'last_login_at'
+        'locale',
+        'theme',
+        'email_notifications',
     ];
 
     /**
@@ -54,9 +51,8 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
-        'is_active' => 'boolean',
         'notification_preferences' => 'array',
-        'last_login_at' => 'datetime'
+        'email_notifications' => 'boolean',
     ];
 
     public function agency()
@@ -94,7 +90,7 @@ class User extends Authenticatable
      */
     public function notifications()
     {
-        return $this->hasMany(Notification::class);
+        return $this->morphMany(\Illuminate\Notifications\DatabaseNotification::class, 'notifiable');
     }
 
     /**
@@ -102,11 +98,7 @@ class User extends Authenticatable
      */
     public function requests()
     {
-        if (Schema::hasTable('service_requests')) {
-            return $this->hasMany(Request::class, 'customer_id')->getQuery()->from('service_requests');
-        }
-        
-        return $this->hasMany(Request::class, 'customer_id');
+        return $this->hasMany(\App\Models\Request::class, 'customer_id');
     }
 
     /**
@@ -121,18 +113,20 @@ class User extends Authenticatable
 
     /**
      * تحديد ما إذا كان المستخدم وكيلاً
+     * @deprecated Use isAgent() instead
      */
     public function isAgency()
     {
-        return $this->user_type === 'agency';
+        return $this->isAgent();
     }
 
     /**
      * تحديد ما إذا كان المستخدم عميلاً
+     * @deprecated Use isClient() instead
      */
     public function isCustomer()
     {
-        return $this->user_type === 'customer';
+        return $this->isClient();
     }
 
     /**
@@ -142,7 +136,9 @@ class User extends Authenticatable
      */
     public function isAgent(): bool
     {
-        return $this->role === 'agent' || $this->user_type === 'agency';
+        // السماح بالدخول لأي مستخدم لديه role = 'agency' أو 'agency' أو 'admin'
+        // يمكنك إضافة أو إزالة أدوار حسب الحاجة
+        return in_array($this->role, ['agency', 'agency', 'admin']);
     }
     
     /**
@@ -152,7 +148,7 @@ class User extends Authenticatable
      */
     public function isSubAgent(): bool
     {
-        return $this->role === 'subagent' || $this->user_type === 'subagent';
+        return $this->role === 'subagent';
     }
     
     /**
@@ -162,7 +158,8 @@ class User extends Authenticatable
      */
     public function isClient(): bool
     {
-        return $this->role === 'client' || $this->user_type === 'customer';
+        // السماح لكل من client و customer باعتبارهم عملاء
+        return in_array($this->role, ['customer', 'customer']);
     }
 
     /**
@@ -172,7 +169,17 @@ class User extends Authenticatable
      */
     public function isActive(): bool
     {
-        return $this->status === 'active' || $this->is_active;
+        return $this->status === 'active';
+    }
+
+    /**
+     * التحقق من أن المستخدم هو مدير النظام
+     *
+     * @return bool
+     */
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
     }
 
     /**
@@ -180,26 +187,64 @@ class User extends Authenticatable
      *
      * @return string
      */
-    public function getProfilePhotoAttribute($value): string
+    public function getAvatarAttribute($value): string
     {
         return $value ?: '/images/default-profile.png';
     }
 
     /**
-     * تحديد عمود الدور المستخدم في النظام
-     *
-     * @return string|null
+     * @deprecated No longer needed after consolidating role column.
      */
     private function determineRoleColumn()
     {
-        $possibleColumns = ['role', 'user_type', 'type'];
-        
-        foreach ($possibleColumns as $column) {
-            if (isset($this->$column)) {
-                return $column;
-            }
+       return null;
+    }
+
+    /**
+     * Check if user has a specific notification preference
+     *
+     * @param string $key The preference key to check
+     * @param bool $default Default value if preference is not set
+     * @return bool
+     */
+    public function hasNotificationPreference(string $key, bool $default = false): bool
+    {
+        if (empty($this->notification_preferences)) {
+            return $default;
         }
+
+        return isset($this->notification_preferences[$key]) 
+            ? (bool) $this->notification_preferences[$key] 
+            : $default;
+    }
+
+    /**
+     * Set a notification preference
+     *
+     * @param string $key The preference key
+     * @param bool $value The preference value
+     * @return $this
+     */
+    public function setNotificationPreference(string $key, bool $value): self
+    {
+        $preferences = $this->notification_preferences ?? [];
+        $preferences[$key] = $value;
+        $this->notification_preferences = $preferences;
         
-        return null;
+        return $this;
+    }
+
+    /**
+     * Set multiple notification preferences at once
+     *
+     * @param array $preferences Array of preferences [key => value]
+     * @return $this
+     */
+    public function setNotificationPreferences(array $preferences): self
+    {
+        $currentPreferences = $this->notification_preferences ?? [];
+        $this->notification_preferences = array_merge($currentPreferences, $preferences);
+        
+        return $this;
     }
 }

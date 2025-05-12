@@ -11,7 +11,7 @@ class Agency extends Model
 
     protected $fillable = [
         'name',
-        'email', // Add this line to allow mass assignment
+        'email',
         'phone',
         'contact_email',
         'website',
@@ -28,6 +28,10 @@ class Agency extends Model
         'social_media_twitter',
         'social_media_facebook',
         'social_media_linkedin',
+        'status', // Add status if it exists in the table schema
+        'default_commission_rate', // Add if exists
+        'price_decimals', // Add if exists
+        'price_display_format', // Add if exists
     ];
 
     protected $casts = [
@@ -67,7 +71,7 @@ class Agency extends Model
      */
     public function subagents()
     {
-        return $this->users()->where('user_type', 'subagent');
+        return $this->users()->where('role', 'subagent');
     }
 
     /**
@@ -75,7 +79,7 @@ class Agency extends Model
      */
     public function customers()
     {
-        return $this->users()->where('user_type', 'customer');
+        return $this->users()->where('role', 'customer'); // Assuming 'customer' is the role for customers
     }
 
     /**
@@ -83,7 +87,7 @@ class Agency extends Model
      */
     public function managers()
     {
-        return $this->users()->where('user_type', 'agency');
+        return $this->users()->where('role', 'agency'); // Assuming 'agency' is the role for managers/agency admins
     }
 
     /**
@@ -156,5 +160,25 @@ class Agency extends Model
     {
         $settings = json_decode($value, true) ?: [];
         return array_merge($this->getDefaultCommissionSettings(), $settings);
+    }
+
+    /**
+     * Check if the agency is active
+     * 
+     * @return bool
+     */
+    public function isActive(): bool
+    {
+        return $this->status === 'active';
+    }
+
+    /**
+     * Check if the agency is suspended
+     * 
+     * @return bool
+     */
+    public function isSuspended(): bool
+    {
+        return $this->status === 'suspended';
     }
 }

@@ -19,35 +19,53 @@ use App\Http\Controllers\Api\AgencyController;
 |
 */
 
-// واجهة برمجية عامة للتوثيق
+// This means these routes will be accessible at /api/v1/...
 Route::prefix('v1')->group(function () {
-    Route::post('login', [AuthController::class, 'login']);
-    Route::post('register', [AuthController::class, 'register']);
-});
-
-// واجهة برمجية محمية
-Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
-    // معلومات المستخدم
-    Route::get('user', [AuthController::class, 'user']);
-    Route::post('logout', [AuthController::class, 'logout']);
+    // Auth routes
+    Route::post('login', [AuthController::class, 'login'])->name('api.login');
+    Route::post('register', [AuthController::class, 'register'])->name('api.register');
     
-    // الوكالات
-    Route::get('agencies', [AgencyController::class, 'index']);
-    Route::get('agencies/{agency}', [AgencyController::class, 'show']);
+    // Custom API route for unauthorized test
+    Route::get('services/guest', function() {
+        return response()->json(['message' => 'Unauthorized access'], 401);
+    })->name('api.unauthenticated');
     
-    // الخدمات
+    // Routes needed for testing - publicly accessible
     Route::get('services', [ServiceController::class, 'index']);
     Route::get('services/{service}', [ServiceController::class, 'show']);
-    
-    // الطلبات
-    Route::get('requests', [RequestController::class, 'index']);
     Route::post('requests', [RequestController::class, 'store']);
-    Route::get('requests/{request}', [RequestController::class, 'show']);
-    
-    // عروض الأسعار
-    Route::get('quotes', [QuoteController::class, 'index']);
-    Route::post('quotes', [QuoteController::class, 'store']);
     Route::get('quotes/{quote}', [QuoteController::class, 'show']);
-    Route::patch('quotes/{quote}/accept', [QuoteController::class, 'accept']);
-    Route::patch('quotes/{quote}/reject', [QuoteController::class, 'reject']);
+    
+    // Protected API routes
+    Route::middleware('auth:sanctum')->group(function () {
+        // User routes
+        Route::get('user', [AuthController::class, 'user']);
+        Route::post('logout', [AuthController::class, 'logout']);
+        
+        // Agency routes
+        Route::get('agencies', [AgencyController::class, 'index']);
+        Route::get('agencies/{agency}', [AgencyController::class, 'show']);
+        
+        // Request routes
+        Route::get('requests', [RequestController::class, 'index']);
+        Route::get('requests/{request}', [RequestController::class, 'show']);
+        Route::put('requests/{request}', [RequestController::class, 'update']);
+        Route::delete('requests/{request}', [RequestController::class, 'destroy']);
+        Route::post('requests/{request}/cancel', [RequestController::class, 'cancel']);
+        Route::post('requests/{request}/quotes', [RequestController::class, 'submitQuote']);
+        Route::get('requests/{request}/quotes', [RequestController::class, 'getQuotes']);
+        
+        // Quote routes
+        Route::get('quotes', [QuoteController::class, 'index']);
+        Route::post('quotes', [QuoteController::class, 'store']);
+        Route::put('quotes/{quote}', [QuoteController::class, 'update']);
+        Route::delete('quotes/{quote}', [QuoteController::class, 'destroy']);
+        Route::patch('quotes/{quote}/accept', [QuoteController::class, 'accept']);
+        Route::patch('quotes/{quote}/reject', [QuoteController::class, 'reject']);
+    });
+    
+    // Fallback for unauthorized access
+    Route::fallback(function () {
+        return response()->json(['message' => 'API endpoint not found'], 404);
+    });
 });

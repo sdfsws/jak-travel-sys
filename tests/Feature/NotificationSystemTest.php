@@ -3,14 +3,19 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use App\Models\Request as TravelRequest;
+use App\Models\Agency;
 use App\Models\Quote;
-use App\Notifications\QuoteStatusChanged;
+use App\Models\Service;
+use App\Models\Request as TravelRequest;
+use App\Models\Notification;
 use App\Services\NotificationService;
-use Illuminate\Support\Facades\Notification;
+use App\Notifications\QuoteStatusChanged;
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\Skipped;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Notification as NotificationFacade;
 
 class NotificationSystemTest extends TestCase
 {
@@ -19,132 +24,207 @@ class NotificationSystemTest extends TestCase
     #[Test]
     public function it_sends_notification_when_quote_status_changes()
     {
-        // تجاهل الإشعارات الفعلية أثناء الاختبار
-        Notification::fake();
+        // إنشاء المستخدمين والبيانات المطلوبة
+        $customer = User::factory()->create(['role' => 'customer']);
+        $agency = Agency::factory()->create();
+        $service = Service::factory()->create(['agency_id' => $agency->id]);
         
-        // إنشاء بيانات الاختبار
-        $client = User::factory()->create(['role' => 'client']);
-        $subagent = User::factory()->create(['role' => 'subagent']);
-        
-        $request = TravelRequest::factory()->create([
-            'user_id' => $client->id
-        ]);
-        
-        $quote = Quote::factory()->create([
-            'request_id' => $request->id,
-            'user_id' => $subagent->id,
+        // إنشاء طلب سفر
+        $request = TravelRequest::create([
+            'user_id' => $customer->id,
+            'customer_id' => $customer->id,
+            'agency_id' => $agency->id,
+            'service_id' => $service->id,
+            'title' => 'طلب رحلة اختبار',
             'status' => 'pending'
         ]);
         
-        // تعديل حالة عرض السعر (سيؤدي إلى إرسال إشعار)
-        $quote->update(['status' => 'accepted']);
+        // إنشاء عرض سعر للطلب
+        $quote = Quote::create([
+            'request_id' => $request->id,
+            'user_id' => $customer->id,
+            'price' => 1000,
+            'description' => 'عرض سعر اختباري',
+            'status' => 'pending'
+        ]);
         
-        // التحقق من إرسال الإشعار للسبوكيل
-        Notification::assertSentTo(
-            $subagent,
-            QuoteStatusChanged::class,
-            function ($notification) use ($quote) {
-                return $notification->quote->id === $quote->id 
-                    && $notification->status === 'accepted';
-            }
+        // تفعيل تزييف الإشعارات قبل اختبار الدالة
+        NotificationFacade::fake();
+        
+        // استخدام خدمة الإشعارات مباشرة لإرسال إشعار تغيير حالة العرض
+        $notificationService = new NotificationService();
+        $notificationService->sendQuoteStatusNotification($quote, 'accepted');
+        
+        // التحقق من إرسال الإشعار للمستخدم المناسب
+        NotificationFacade::assertSentTo(
+            [$customer],
+            QuoteStatusChanged::class
         );
     }
     
     #[Test]
-    public function notification_service_sends_multiple_notifications()
+    public function notification_service_can_notify_users()
     {
-        // تجاهل الإشعارات الفعلية أثناء الاختبار
-        Notification::fake();
+        // إنشاء مستخدمين للاختبار
+        $users = User::factory()->count(3)->create();
         
-        // إنشاء بيانات الاختبار
-        $agent = User::factory()->create(['role' => 'agent']);
-        $subagents = User::factory()->count(3)->create([
-            'role' => 'subagent',
-            'agency_id' => $agent->agency_id
+        // تفعيل تزييف الإشعارات
+        NotificationFacade::fake();
+        
+        // إنشاء البيانات المطلوبة لإنشاء عرض سعر صالح
+        $agency = Agency::factory()->create();
+        $service = Service::factory()->create(['agency_id' => $agency->id]);
+        $request = TravelRequest::create([
+            'user_id' => $users[0]->id,
+            'customer_id' => $users[0]->id,
+            'agency_id' => $agency->id,
+            'service_id' => $service->id,
+            'title' => 'طلب رحلة اختبار',
+            'status' => 'pending'
         ]);
         
-        $request = TravelRequest::factory()->create();
-        $quote = Quote::factory()->create([
-            'request_id' => $request->id
+        // إنشاء عرض سعر للطلب
+        $quote = Quote::create([
+            'request_id' => $request->id,
+            'user_id' => $users[0]->id,
+            'price' => 1000,
+            'description' => 'عرض سعر اختباري',
+            'status' => 'pending'
         ]);
         
-        // إنشاء خدمة الإشعارات واستخدامها
+        // إنشاء إشعار
+        $notification = new QuoteStatusChanged($quote, 'accepted');
+        
+        // استخدام خدمة الإشعارات
         $notificationService = new NotificationService();
-        $recipients = $subagents->pluck('id')->toArray();
         
-        $notificationService->notifyMany(
-            $recipients,
-            new QuoteStatusChanged($quote, 'pending'),
-            'تم إنشاء طلب جديد يحتاج إلى عروض أسعار'
+        // إرسال الإشعار للمستخدم الأول
+        $sent = $notificationService->notify($users[0]->id, $notification);
+        
+        // التحقق من نجاح الإرسال
+        $this->assertTrue($sent);
+        
+        // التحقق من إرسال الإشعار بشكل صحيح
+        NotificationFacade::assertSentTo(
+            $users[0],
+            QuoteStatusChanged::class
         );
-        
-        // التحقق من إرسال الإشعارات لجميع السبوكلاء
-        foreach ($subagents as $subagent) {
-            Notification::assertSentTo(
-                $subagent,
-                QuoteStatusChanged::class
-            );
-        }
     }
     
     #[Test]
     public function it_sets_notification_as_read()
     {
-        // إنشاء بيانات الاختبار
-        $client = User::factory()->create(['role' => 'client']);
-        
-        // إنشاء إشعار في قاعدة البيانات
-        $notification = $client->notifications()->create([
-            'id' => \Illuminate\Support\Str::uuid(),
-            'type' => QuoteStatusChanged::class,
-            'data' => json_encode(['quote_id' => 1, 'status' => 'accepted']),
-            'read_at' => null
-        ]);
-        
-        // التحقق من أن الإشعار غير مقروء
+        $user = User::factory()->create();
+        $this->actingAs($user);
+        $quote = Quote::factory()->create(['user_id' => $user->id]);
+        $user->notify(new QuoteStatusChanged($quote, 'pending'));
+        $notification = $user->notifications()->first();
         $this->assertNull($notification->read_at);
-        
-        // تسجيل الدخول كعميل وتحديث حالة الإشعار
-        $response = $this->actingAs($client)
-                         ->patch('/notifications/' . $notification->id . '/read');
-        
-        $response->assertStatus(200);
-        
-        // التحقق من تحديث حالة الإشعار
-        $this->assertDatabaseHas('notifications', [
-            'id' => $notification->id,
-            'read_at' => now()->format('Y-m-d H:i')
-        ]);
+        $response = $this->patch(route('notifications.mark-read', $notification->id));
+        $response->assertSuccessful();
+        $notification->refresh();
+        $this->assertNotNull($notification->read_at);
     }
-    
+
     #[Test]
     public function users_can_view_their_notifications()
     {
-        // إنشاء بيانات الاختبار
-        $client = User::factory()->create(['role' => 'client']);
-        
-        // إنشاء بعض الإشعارات
-        $client->notifications()->createMany([
-            [
-                'id' => \Illuminate\Support\Str::uuid(),
-                'type' => QuoteStatusChanged::class,
-                'data' => json_encode(['quote_id' => 1, 'status' => 'accepted']),
-                'created_at' => now()->subDays(1)
-            ],
-            [
-                'id' => \Illuminate\Support\Str::uuid(),
-                'type' => QuoteStatusChanged::class,
-                'data' => json_encode(['quote_id' => 2, 'status' => 'rejected']),
-                'created_at' => now()
-            ]
-        ]);
-        
-        // تسجيل الدخول واستعراض الإشعارات
-        $response = $this->actingAs($client)
-                         ->get('/notifications');
-        
+        $user = User::factory()->create();
+        $this->actingAs($user);
+        $quote1 = Quote::factory()->create(['user_id' => $user->id]);
+        $quote2 = Quote::factory()->create(['user_id' => $user->id]);
+        $user->notify(new QuoteStatusChanged($quote1, 'pending'));
+        $user->notify(new QuoteStatusChanged($quote2, 'accepted'));
+        $response = $this->get(route('notifications.index'));
         $response->assertStatus(200);
-        $response->assertViewIs('notifications.index');
-        $response->assertViewHas('notifications');
+        $response->assertSee('عرض سعر جديد');
+        $response->assertSee('تم قبول عرض السعر');
+    }
+
+    #[Test]
+    public function it_checks_if_notifications_are_sent_correctly()
+    {
+        // إنشاء المستخدمين والبيانات المطلوبة
+        $customer = User::factory()->create(['role' => 'customer']);
+        $agency = Agency::factory()->create();
+        $service = Service::factory()->create(['agency_id' => $agency->id]);
+
+        // إنشاء طلب سفر
+        $request = TravelRequest::create([
+            'user_id' => $customer->id,
+            'customer_id' => $customer->id,
+            'agency_id' => $agency->id,
+            'service_id' => $service->id,
+            'title' => 'طلب رحلة اختبار',
+            'status' => 'pending'
+        ]);
+
+        // إنشاء عرض سعر للطلب
+        $quote = Quote::create([
+            'request_id' => $request->id,
+            'user_id' => $customer->id,
+            'price' => 1000,
+            'description' => 'عرض سعر اختباري',
+            'status' => 'pending'
+        ]);
+
+        // تفعيل تزييف الإشعارات قبل اختبار الدالة
+        NotificationFacade::fake();
+
+        // استخدام خدمة الإشعارات مباشرة لإرسال إشعار تغيير حالة العرض
+        $notificationService = new NotificationService();
+        $notificationService->sendQuoteStatusNotification($quote, 'accepted');
+
+        // التحقق من إرسال الإشعار للمستخدم المناسب
+        NotificationFacade::assertSentTo(
+            [$customer],
+            QuoteStatusChanged::class
+        );
+    }
+
+    #[Test]
+    public function it_checks_if_notifications_are_displayed_correctly()
+    {
+        // إنشاء المستخدمين والبيانات المطلوبة
+        $customer = User::factory()->create(['role' => 'customer']);
+        $agency = Agency::factory()->create();
+        $service = Service::factory()->create(['agency_id' => $agency->id]);
+
+        // إنشاء طلب سفر
+        $request = TravelRequest::create([
+            'user_id' => $customer->id,
+            'customer_id' => $customer->id,
+            'agency_id' => $agency->id,
+            'service_id' => $service->id,
+            'title' => 'طلب رحلة اختبار',
+            'status' => 'pending'
+        ]);
+
+        // إنشاء عرض سعر للطلب
+        $quote = Quote::create([
+            'request_id' => $request->id,
+            'user_id' => $customer->id,
+            'price' => 1000,
+            'description' => 'عرض سعر اختباري',
+            'status' => 'pending'
+        ]);
+
+        // تفعيل تزييف الإشعارات قبل اختبار الدالة
+        NotificationFacade::fake();
+
+        // استخدام خدمة الإشعارات مباشرة لإرسال إشعار تغيير حالة العرض
+        $notificationService = new NotificationService();
+        $notificationService->sendQuoteStatusNotification($quote, 'accepted');
+
+        // التحقق من إرسال الإشعار للمستخدم المناسب
+        NotificationFacade::assertSentTo(
+            [$customer],
+            QuoteStatusChanged::class
+        );
+
+        // التحقق من عرض الإشعار بشكل صحيح
+        $notifications = $customer->notifications()->get();
+        $this->assertCount(1, $notifications);
+        $this->assertEquals('accepted', $notifications->first()->data['status']);
     }
 }

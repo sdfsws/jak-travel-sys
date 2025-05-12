@@ -29,6 +29,26 @@ class LoginController extends Controller
     }
 
     /**
+     * Override the login attempt to debug why login fails
+     */
+    protected function attemptLogin(Request $request)
+    {
+        $credentials = $this->credentials($request);
+        
+        \Log::info('DUSK DEBUG: Attempting login', $credentials);
+        $attempt = $this->guard()->attempt(
+            $credentials,
+            $request->filled('remember')
+        );
+        \Log::info('DUSK DEBUG: Attempt result', ['result' => $attempt]);
+        if (!$attempt) {
+            $user = \App\Models\User::where('email', $credentials['email'])->first();
+            \Log::info('DUSK DEBUG: User from DB', $user ? $user->toArray() : ['not found']);
+        }
+        return $attempt;
+    }
+
+    /**
      * The user has been authenticated.
      *
      * @param  \Illuminate\Http\Request  $request
@@ -37,14 +57,17 @@ class LoginController extends Controller
      */
     protected function authenticated(Request $request, $user)
     {
-        if ($user->isAgency()) {
+        // Check if user is admin first
+        if ($user->role === 'admin' || $user->is_admin == 1) {
+            return redirect()->route('admin.dashboard');
+        } elseif ($user->role === 'agency') {
             return redirect()->route('agency.dashboard');
-        } elseif ($user->isSubagent()) {
+        } elseif ($user->role === 'subagent') {
             return redirect()->route('subagent.dashboard');
-        } elseif ($user->isCustomer()) {
+        } elseif ($user->role === 'customer') {
             return redirect()->route('customer.dashboard');
         }
         
-        return redirect()->intended($this->redirectPath());
+        return redirect($this->redirectPath());
     }
 }

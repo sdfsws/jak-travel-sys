@@ -7,6 +7,9 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Symfony\Component\Finder\SplFileInfo;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Artisan;
+use Throwable;
 
 class SafeMigrate extends Command
 {
@@ -15,7 +18,7 @@ class SafeMigrate extends Command
      *
      * @var string
      */
-    protected $signature = 'migrate:safe {--force : Force the operation to run in production}';
+    protected $signature = 'migrate:safe {--force : Force the operation to run in production} {--retries=3 : Number of retries for failed migrations} {--delay=5 : Delay in seconds between retries}';
 
     /**
      * The console command description.
@@ -30,6 +33,16 @@ class SafeMigrate extends Command
     public function handle()
     {
         $this->info('Starting safe migration process...');
+        
+        // Pre-migration validation
+        $validationIssues = $this->preMigrationValidation();
+        if (!empty($validationIssues)) {
+            $this->error('Pre-migration validation failed:');
+            foreach ($validationIssues as $issue) {
+                $this->error("- {$issue}");
+            }
+            return Command::FAILURE;
+        }
         
         // Get all migration files
         $migrationFiles = $this->getMigrationFiles();
@@ -53,13 +66,43 @@ class SafeMigrate extends Command
                 $skipped++;
             } else {
                 $this->info("Migrating: {$relativePath}");
-                $this->runMigration($migrationPath);
+                $this->runMigrationWithRetry($migrationPath, $relativePath);
                 $migrated++;
             }
         }
         
         $this->info("Migration complete: {$migrated} tables migrated, {$skipped} tables skipped.");
         
+        // Ensure all migrations are run before seeding
+        try {
+            if (!Schema::hasTable('migrations')) {
+                $this->error("The 'migrations' table does not exist. Please ensure all migrations are run.");
+                return Command::FAILURE;
+            }
+
+            $this->runArtisanMigrateWithRetry();
+        } catch (Throwable $e) {
+            $this->error("Migration failed: {$e->getMessage()}");
+            Log::error("Migration failed: {$e->getMessage()}");
+            return Command::FAILURE;
+        }
+
+        // Check for the existence of the `requests` table before seeding
+        if (!Schema::hasTable('requests')) {
+            $this->error("The 'requests' table does not exist. Please ensure all migrations are run.");
+            return Command::FAILURE;
+        }
+
+        // Post-migration validation
+        $postValidationIssues = $this->postMigrationValidation();
+        if (!empty($postValidationIssues)) {
+            $this->error('Post-migration validation failed:');
+            foreach ($postValidationIssues as $issue) {
+                $this->error("- {$issue}");
+            }
+            return Command::FAILURE;
+        }
+
         return Command::SUCCESS;
     }
     
@@ -131,5 +174,146 @@ class SafeMigrate extends Command
         }
         
         $this->call($command);
+    }
+    
+    /**
+     * Perform pre-migration validation.
+     */
+    private function preMigrationValidation()
+    {
+        $issues = [];
+        
+        // Validate the existence of required tables
+        $requiredTables = ['users', 'agencies', 'services', 'requests', 'quotes'];
+        foreach ($requiredTables as $table) {
+            if (!Schema::hasTable($table)) {
+                $issues[] = "Required table '{$table}' does not exist.";
+                Log::error("Required table '{$table}' does not exist.");
+            } else {
+                Log::info("Table '{$table}' exists.");
+            }
+        }
+        
+        // Validate the existence of required columns
+        $requiredColumns = [
+            'users' => ['id', 'name', 'email'],
+            'agencies' => ['id', 'name'],
+            'services' => ['id', 'name'],
+            'requests' => ['id', 'title'],
+            'quotes' => ['id', 'price']
+        ];
+        foreach ($requiredColumns as $table => $columns) {
+            foreach ($columns as $column) {
+                if (!Schema::hasColumn($table, $column)) {
+                    $issues[] = "Required column '{$column}' does not exist in table '{$table}'.";
+                    Log::error("Required column '{$column}' does not exist in table '{$table}'.");
+                } else {
+                    Log::info("Column '{$column}' exists in table '{$table}'.");
+                }
+            }
+        }
+        
+        // Validate the existence of required constraints
+        $requiredConstraints = [
+            'requests' => ['user_id', 'customer_id', 'agency_id', 'service_id'],
+            'quotes' => ['request_id', 'user_id', 'subagent_id', 'currency_id']
+        ];
+        foreach ($requiredConstraints as $table => $columns) {
+            foreach ($columns as $column) {
+                if (!Schema::hasColumn($table, $column)) {
+                    $issues[] = "Required constraint '{$column}' does not exist in table '{$table}'.";
+                    Log::error("Required column '{$column}' does not exist in table '{$table}'.");
+                } else {
+                    Log::info("Constraint '{$column}' exists in table '{$table}'.");
+                }
+            }
+        }
+        
+        return $issues;
+    }
+
+    /**
+     * Perform post-migration validation.
+     */
+    private function postMigrationValidation()
+    {
+        $issues = [];
+        
+        // Validate the existence of required columns
+        $requiredColumns = [
+            'users' => ['id', 'name', 'email'],
+            'agencies' => ['id', 'name'],
+            'services' => ['id', 'name'],
+            'requests' => ['id', 'title'],
+            'quotes' => ['id', 'price']
+        ];
+        foreach ($requiredColumns as $table => $columns) {
+            foreach ($columns as $column) {
+                if (!Schema::hasColumn($table, $column)) {
+                    $issues[] = "Required column '{$column}' does not exist in table '{$table}' after migration.";
+                    Log::error("Required column '{$column}' does not exist in table '{$table}' after migration.");
+                } else {
+                    Log::info("Column '{$column}' exists in table '{$table}' after migration.");
+                }
+            }
+        }
+        
+        return $issues;
+    }
+
+    /**
+     * Run a single migration with retry mechanism.
+     */
+    private function runMigrationWithRetry($path, $relativePath)
+    {
+        $retries = (int) $this->option('retries');
+        $delay = (int) $this->option('delay');
+        $attempt = 0;
+
+        while ($attempt <= $retries) {
+            try {
+                $this->runMigration($path);
+                Log::info("Migration successful: {$relativePath}");
+                return;
+            } catch (Throwable $e) {
+                $attempt++;
+                Log::error("Migration failed: {$relativePath}, Attempt: {$attempt}, Error: {$e->getMessage()}");
+
+                if ($attempt > $retries) {
+                    $this->error("Migration failed after {$retries} retries: {$relativePath}");
+                    return;
+                }
+
+                sleep($delay);
+            }
+        }
+    }
+
+    /**
+     * Run the Artisan migrate command with retry mechanism.
+     */
+    private function runArtisanMigrateWithRetry()
+    {
+        $retries = (int) $this->option('retries');
+        $delay = (int) $this->option('delay');
+        $attempt = 0;
+
+        while ($attempt <= $retries) {
+            try {
+                Artisan::call('migrate');
+                Log::info("Artisan migrate command successful.");
+                return;
+            } catch (Throwable $e) {
+                $attempt++;
+                Log::error("Artisan migrate command failed, Attempt: {$attempt}, Error: {$e->getMessage()}");
+
+                if ($attempt > $retries) {
+                    $this->error("Artisan migrate command failed after {$retries} retries.");
+                    return;
+                }
+
+                sleep($delay);
+            }
+        }
     }
 }

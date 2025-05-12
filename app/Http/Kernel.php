@@ -10,17 +10,6 @@ use App\Http\Middleware\CustomerMiddleware;
 class Kernel extends HttpKernel
 {
     /**
-     * The application's route middleware.
-     *
-     * @var array<string, class-string|string>
-     */
-    protected $routeMiddleware = [
-        'agency' => AgencyMiddleware::class,
-        'subagent' => SubagentMiddleware::class,
-        'customer' => CustomerMiddleware::class,
-    ];
-
-    /**
      * The application's middleware aliases.
      *
      * @var array<string, class-string|string>
@@ -41,6 +30,7 @@ class Kernel extends HttpKernel
         'subagent' => \App\Http\Middleware\SubagentMiddleware::class,
         'customer' => \App\Http\Middleware\CustomerMiddleware::class,
         'admin' => \App\Http\Middleware\AdminMiddleware::class,
+        'isAdmin' => \App\Http\Middleware\IsAdmin::class,
     ];
 
     /**

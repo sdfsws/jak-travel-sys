@@ -17,23 +17,26 @@ class RequestTest extends TestCase
     #[Test]
     public function it_can_create_a_request()
     {
-        $client = User::factory()->create(['role' => 'client']);
+        $customer = User::factory()->create(['role' => 'customer']);
         $service = Service::factory()->create();
         
         $request = Request::factory()->create([
-            'user_id' => $client->id,
+            'user_id' => $customer->id,
             'service_id' => $service->id,
             'title' => 'طلب عمرة لعائلة مكونة من 5 أشخاص',
             'description' => 'طلب حجز باقة عمرة كاملة تشمل السكن والمواصلات للمشاعر المقدسة',
             'status' => 'pending',
             'required_date' => now()->addMonths(2),
+            'notes' => 'ملاحظات إضافية'
         ]);
 
         $this->assertDatabaseHas('requests', [
-            'user_id' => $client->id,
+            'user_id' => $customer->id,
             'service_id' => $service->id,
             'title' => 'طلب عمرة لعائلة مكونة من 5 أشخاص',
-            'status' => 'pending'
+            'status' => 'pending',
+            'required_date' => now()->addMonths(2)->toDateString(),
+            'notes' => 'ملاحظات إضافية'
         ]);
     }
 

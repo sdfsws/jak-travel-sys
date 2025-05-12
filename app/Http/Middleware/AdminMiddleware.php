@@ -5,36 +5,36 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Auth\Access\AuthorizationException;
 
 class AdminMiddleware
 {
     /**
-     * التحقق من صلاحيات المستخدم كمسؤول
+     * Handle an incoming request.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure  $next
-     * @return mixed
+     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
-    public function handle(Request $request, Closure $next)
+    public function handle(Request $request, Closure $next): Response
     {
         if (!Auth::check()) {
             return redirect()->route('login');
         }
-
+        
         $user = Auth::user();
         
-        // التحقق من أن المستخدم مسؤول باستخدام عدة طرق
+        // Check user is admin using the correct fields from the database schema
         if (
-            (property_exists($user, 'is_admin') && $user->is_admin) ||
-            (method_exists($user, 'isAdmin') && $user->isAdmin()) ||
-            (property_exists($user, 'role') && in_array(strtolower($user->role), ['admin', 'superadmin'])) ||
-            (property_exists($user, 'user_type') && in_array(strtolower($user->user_type), ['admin', 'superadmin'])) ||
-            (property_exists($user, 'type') && in_array(strtolower($user->type), ['admin', 'superadmin'])) ||
-            (property_exists($user, 'is_superadmin') && $user->is_superadmin)
+            ($user->role === 'admin') || 
+            ($user->is_admin == 1)
         ) {
-            return $next($request);
+            try {
+                return $next($request);
+            } catch (AuthorizationException $e) {
+                return response()->json(['error' => $e->getMessage()], 403);
+            }
         }
-
-        return redirect()->route('home')->with('error', 'ليس لديك صلاحية الوصول إلى هذه الصفحة');
+        
+        return response()->json(['error' => 'Forbidden'], 403);
     }
 }

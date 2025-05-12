@@ -13,10 +13,27 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('agency_id')->nullable()->constrained('agencies')->nullOnDelete();
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('role')->default('customer'); // Consolidated role
+            $table->string('status')->default('active'); // Consolidated status
+            $table->string('avatar')->nullable();
+            $table->string('id_number')->nullable();
+            $table->string('passport_number')->nullable();
+            $table->string('nationality')->nullable();
+            $table->string('city')->nullable();
+            $table->string('country')->nullable();
+            $table->string('preferred_currency')->nullable();
+            $table->json('notification_preferences')->nullable();
+            $table->string('locale', 10)->default('ar');
+            $table->string('theme')->nullable(); // Consolidated theme preference
+            $table->boolean('email_notifications')->default(true); // Defaulting to true, adjust if needed
+            $table->string('phone')->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->boolean('is_admin')->default(false);
             $table->rememberToken();
             $table->timestamps();
         });

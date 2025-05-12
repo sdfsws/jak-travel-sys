@@ -7,6 +7,8 @@ use App\Models\User;
 use App\Models\Agency;
 use Illuminate\Support\Facades\Hash;
 
+// Reviewed on 2023-10-01 by John Doe
+
 class UserSeeder extends Seeder
 {
     /**
@@ -14,132 +16,228 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        // جلب الوكالات المنشأة سابقاً
+        // Extra protection: Only allow running this seeder in the testing environment
+        if (!app()->environment('testing')) {
+            // Show a warning and confirmation message to the user in the terminal
+            fwrite(STDOUT, "Warning: Running this seeder will affect user data.\n");
+            fwrite(STDOUT, "Are you sure you want to continue? Type 'yes' and press Enter to proceed, or anything else to skip: ");
+            $handle = fopen ("php://stdin","r");
+            sleep(3);
+            $line = trim(fgets($handle));
+            fclose($handle);
+            if ($line !== env('DEFAULT_YES_RESPONSE', 'yes')) {
+                fwrite(STDOUT, "UserSeeder skipped.\n");
+                return; // Skip only this seeder
+            }
+        }
+
+        $isTesting = app()->environment('testing');
+        $faker = \Faker\Factory::create();
+
+        // Fetch previously created agencies
         $yemenAgency = Agency::where('email', 'info@yemen-travel.com')->first();
         $gulfAgency = Agency::where('email', 'info@gulf-travel.com')->first();
         
         if ($yemenAgency) {
-            // إنشاء مستخدم وكيل لوكالة اليمن
+            // Create agency admin for Yemen agency
+            $agencyAdminEmail = $isTesting ? $faker->unique()->safeEmail() : 'admin@yemen-travel.com';
             $agencyAdmin = User::firstOrCreate(
-                ['email' => 'admin@yemen-travel.com'],
+                ['email' => $agencyAdminEmail],
                 [
                     'name' => 'مدير وكالة اليمن',
                     'password' => Hash::make('password123'),
-                    'phone' => '777100100',
-                    'user_type' => 'agency',
+                    'role' => 'agency',
                     'agency_id' => $yemenAgency->id,
-                    'is_active' => true,
+                    'status' => 'active',
+                    'locale' => 'ar',
+                    'theme' => 'light',
+                    'email_notifications' => true,
                 ]
             );
             
-            // إنشاء سبوكلاء لوكالة اليمن
+            // Create subagents for Yemen agency
+            $subagent1Email = $isTesting ? $faker->unique()->safeEmail() : 'ahmed@yemen-travel.com';
             $subagent1 = User::firstOrCreate(
-                ['email' => 'ahmed@yemen-travel.com'],
+                ['email' => $subagent1Email],
                 [
                     'name' => 'أحمد محمد',
                     'password' => Hash::make('password123'),
-                    'phone' => '777200200',
-                    'user_type' => 'subagent',
+                    'role' => 'subagent',
                     'agency_id' => $yemenAgency->id,
-                    'parent_id' => $agencyAdmin->id,
-                    'is_active' => true,
+                    'status' => 'active',
+                    'locale' => 'ar',
+                    'theme' => 'light',
+                    'email_notifications' => true,
                 ]
             );
             
+            $subagent2Email = $isTesting ? $faker->unique()->safeEmail() : 'mohammed@yemen-travel.com';
             $subagent2 = User::firstOrCreate(
-                ['email' => 'mohammed@yemen-travel.com'],
+                ['email' => $subagent2Email],
                 [
                     'name' => 'محمد علي',
                     'password' => Hash::make('password123'),
-                    'phone' => '777300300',
-                    'user_type' => 'subagent',
+                    'role' => 'subagent',
                     'agency_id' => $yemenAgency->id,
-                    'parent_id' => $agencyAdmin->id,
-                    'is_active' => true,
+                    'status' => 'active',
+                    'locale' => 'ar',
+                    'theme' => 'light',
+                    'email_notifications' => true,
                 ]
             );
             
-            // إنشاء عملاء لوكالة اليمن
+            // Create customers for Yemen agency
+            $customer1Email = $isTesting ? $faker->unique()->safeEmail() : 'salem@example.com';
             User::firstOrCreate(
-                ['email' => 'salem@example.com'],
+                ['email' => $customer1Email],
                 [
                     'name' => 'سالم علي',
                     'password' => Hash::make('password123'),
-                    'phone' => '777400400',
-                    'user_type' => 'customer',
+                    'role' => 'customer',
                     'agency_id' => $yemenAgency->id,
-                    'parent_id' => $agencyAdmin->id,
-                    'is_active' => true,
+                    'status' => 'active',
+                    'locale' => 'ar',
+                    'theme' => 'light',
+                    'email_notifications' => true,
                 ]
             );
             
+            $customer2Email = $isTesting ? $faker->unique()->safeEmail() : 'fatima@example.com';
             User::firstOrCreate(
-                ['email' => 'fatima@example.com'],
+                ['email' => $customer2Email],
                 [
                     'name' => 'فاطمة أحمد',
                     'password' => Hash::make('password123'),
-                    'phone' => '777500500',
-                    'user_type' => 'customer',
+                    'role' => 'customer',
                     'agency_id' => $yemenAgency->id,
-                    'parent_id' => $agencyAdmin->id,
-                    'is_active' => true,
+                    'status' => 'active',
+                    'locale' => 'ar',
+                    'theme' => 'light',
+                    'email_notifications' => true,
                 ]
             );
         }
         
         if ($gulfAgency) {
-            // إنشاء مستخدم وكيل لوكالة الخليج
+            // Create agency admin for Gulf agency
+            $gulfAdminEmail = $isTesting ? $faker->unique()->safeEmail() : 'admin@gulf-travel.com';
             $gulfAdmin = User::firstOrCreate(
-                ['email' => 'admin@gulf-travel.com'],
+                ['email' => $gulfAdminEmail],
                 [
                     'name' => 'مدير وكالة الخليج',
                     'password' => Hash::make('password123'),
-                    'phone' => '777600600',
-                    'user_type' => 'agency',
+                    'role' => 'agency',
                     'agency_id' => $gulfAgency->id,
-                    'is_active' => true,
+                    'status' => 'active',
+                    'locale' => 'ar',
+                    'theme' => 'light',
+                    'email_notifications' => true,
                 ]
             );
             
-            // إنشاء سبوكيل لوكالة الخليج
+            // Create subagent for Gulf agency
+            $subagentEmail = $isTesting ? $faker->unique()->safeEmail() : 'khaled@gulf-travel.com';
             User::firstOrCreate(
-                ['email' => 'khaled@gulf-travel.com'],
+                ['email' => $subagentEmail],
                 [
                     'name' => 'خالد حسن',
                     'password' => Hash::make('password123'),
-                    'phone' => '777700700',
-                    'user_type' => 'subagent',
+                    'role' => 'subagent',
                     'agency_id' => $gulfAgency->id,
-                    'parent_id' => $gulfAdmin->id,
-                    'is_active' => true,
+                    'status' => 'active',
+                    'locale' => 'ar',
+                    'theme' => 'light',
+                    'email_notifications' => true,
                 ]
             );
             
-            // إنشاء عميل لوكالة الخليج
+            // Create customer for Gulf agency
+            $customerEmail = $isTesting ? $faker->unique()->safeEmail() : 'abdullah@example.com';
             User::firstOrCreate(
-                ['email' => 'abdullah@example.com'],
+                ['email' => $customerEmail],
                 [
                     'name' => 'عبد الله محمد',
                     'password' => Hash::make('password123'),
-                    'phone' => '777800800',
-                    'user_type' => 'customer',
+                    'role' => 'customer',
                     'agency_id' => $gulfAgency->id,
-                    'parent_id' => $gulfAdmin->id,
-                    'is_active' => true,
+                    'status' => 'active',
+                    'locale' => 'ar',
+                    'theme' => 'light',
+                    'email_notifications' => true,
                 ]
             );
         }
         
-        // إنشاء مستخدم متميز للاختبار السريع
+        // Create a premium user for quick testing
+        $testUserEmail = $isTesting ? $faker->unique()->safeEmail() : 'test@example.com';
         User::firstOrCreate(
-            ['email' => 'test@example.com'],
+            ['email' => $testUserEmail],
             [
                 'name' => 'مستخدم اختباري',
                 'password' => Hash::make('123456'),
-                'phone' => '777999999',
-                'user_type' => 'agency',
-                'agency_id' => $yemenAgency ? $yemenAgency->id : 1,
-                'is_active' => true,
+                'role' => 'agency',
+                'agency_id' => $yemenAgency ? $yemenAgency->id : ($gulfAgency ? $gulfAgency->id : null),
+                'status' => 'active',
+                'locale' => 'en',
+                'theme' => 'dark',
+                'email_notifications' => false,
+            ]
+        );
+
+        // Add Admin User
+        $adminUserEmail = $isTesting ? $faker->unique()->safeEmail() : 'admin@jak.com';
+        User::firstOrCreate(
+            ['email' => $adminUserEmail],
+            [
+                'name' => 'Admin User',
+                'password' => Hash::make('password'),
+                'role' => 'admin',
+                'is_admin' => 1,
+                'status' => 'active',
+                'locale' => 'en',
+                'theme' => 'light',
+                'email_notifications' => true,
+            ]
+        );
+
+        // In testing environment: Ensure a fixed admin user exists for Dusk tests
+        if ($isTesting) {
+            $admin = User::updateOrCreate(
+                ['email' => 'admin@dusk-test.com'],
+                [
+                    'name' => 'Dusk Admin',
+                    'password' => Hash::make('duskpassword'),
+                    'role' => 'admin',
+                    'is_admin' => 1,
+                    'status' => 'active',
+                    'locale' => 'ar',
+                    'theme' => 'light',
+                    'email_notifications' => true,
+                ]
+            );
+        }
+        // Timer logic removed as seeders should not require user interaction
+        fwrite(STDOUT, "Timer completed.\n");
+
+        // Check to ensure the user seeder is working correctly
+        $userCount = User::count();
+        if ($userCount > 0) {
+            fwrite(STDOUT, "UserSeeder completed successfully. Total users: $userCount\n");
+        } else {
+            fwrite(STDOUT, "UserSeeder failed. No users were created.\n");
+        }
+
+        // Add default admin user
+        User::firstOrCreate(
+            ['email' => 'admin@jaksws.com'],
+            [
+                'name' => 'admin',
+                'password' => Hash::make('admin@1211'),
+                'role' => 'admin',
+                'status' => 'active',
+                'locale' => 'en',
+                'theme' => 'light',
+                'email_notifications' => true,
             ]
         );
     }

@@ -6,18 +6,47 @@
 
 نظام متكامل لإدارة وكالات السفر والحج والعمرة، مع دعم كامل للغة العربية والاتجاه من اليمين إلى اليسار.
 
+## 📑 جدول المحتويات
+
+- [🎯 المميزات الرئيسية](#-المميزات-الرئيسية)
+- [👤 أنواع المستخدمين](#-أنواع-المستخدمين)
+- [⚙️ متطلبات التشغيل](#️-متطلبات-التشغيل)
+- [🚀 خطوات التثبيت](#-خطوات-التثبيت)
+- [🌍 إعدادات اللغة والمظهر](#-إعدادات-اللغة-والمظهر)
+- [💳 نظام الدفع الإلكتروني](#-نظام-الدفع-الإلكتروني)
+- [📊 التقارير والإحصائيات](#-التقارير-والإحصائيات)
+- [📁 إدارة المستندات](#-إدارة-المستندات)
+- [🧩 هيكل المشروع](#-هيكل-المشروع)
+- [💱 نظام تعدد العملات](#-نظام-تعدد-العملات)
+- [🔔 نظام الإشعارات المتكامل](#-نظام-الإشعارات-المتكامل)
+- [🎨 ميزات المظهر والتخصيص](#-ميزات-المظهر-والتخصيص)
+- [📚 البيانات الافتراضية للتجربة](#-البيانات-الافتراضية-للتجربة)
+- [📖 دليل المستخدمين](#-دليل-المستخدمين)
+- [🔗 واجهة برمجة التطبيقات API](#-واجهة-برمجة-التطبيقات-api)
+- [📦 الإصدارات والتطوير](#-الإصدارات-والتطوير)
+- [🛠️ تطوير التطبيق](#️-تطوير-التطبيق)
+- [📮 التواصل والمساهمة](#-التواصل-والمساهمة)
+- [📝 الترخيص](#-الترخيص)
+- [📋 اختبارات سلامة قاعدة البيانات](#-اختبارات-سلامة-قاعدة-البيانات)
+- [🛠️ Code Style & Linting](#️-code-style--linting)
+- [🔒 Security](#-security)
+- [🤝 Contributing](#-contributing)
+- [🧪 Test Coverage](#-test-coverage)
+- [📦 Dependency Management](#-dependency-management)
+- [📝 Changelog](#-changelog)
+
 ## 🎯 المميزات الرئيسية
 
-- 🔤 واجهة عربية كاملة ودعم RTL  
-- 👥 تعدد المستخدمين (أدمن، وكيل، سبوكيل، عميل) بصلاحيات مخصصة  
-- 🏢 نظام متعدد المستأجرين (Multi-Tenant)  
-- 💱 دعم تعدد العملات والتحويل التلقائي
-- 🧾 إدارة شاملة للخدمات (حج وعمرة، جوازات، تذاكر، نقل، موافقات أمنية)  
-- 🔐 نظام طلبات يضمن الخصوصية  
-- 💰 عروض أسعار وتسعير مرن  
-- 🗂️ نظام إدارة المستندات والوثائق  
-- 📱 الوضع الليلي وواجهة متجاوبة  
-- 📊 تقارير وإحصائيات متقدمة  
+- 🔤 **واجهة عربية كاملة ودعم RTL**  
+- 👥 **تعدد المستخدمين** (أدمن، وكيل، سبوكيل، عميل) بصلاحيات مخصصة  
+- 🏢 **نظام متعدد المستأجرين (Multi-Tenant)**  
+- 💱 **دعم تعدد العملات والتحويل التلقائي**
+- 🧾 **إدارة شاملة للخدمات** (حج وعمرة، جوازات، تذاكر، نقل، موافقات أمنية)  
+- 🔐 **نظام طلبات يضمن الخصوصية**  
+- 💰 **عروض أسعار وتسعير مرن**  
+- 🗂️ **نظام إدارة المستندات والوثائق**  
+- 📱 **الوضع الليلي وواجهة متجاوبة**  
+- 📊 **تقارير وإحصائيات متقدمة**  
 
 ---
 
@@ -50,11 +79,45 @@
 
 ## ⚙️ متطلبات التشغيل
 
-- PHP >= 8.2  
-- MySQL >= 5.7 أو SQLite  
-- Composer  
-- Node.js و NPM  
-- Git
+### متطلبات الخادم
+- **PHP**: الإصدارات 8.2 أو 8.3 (موصى به)
+  - **توسعات PHP المطلوبة**: 
+    - PDO (pdo_mysql أو pdo_sqlite)
+    - mbstring 
+    - openssl
+    - json 
+    - curl
+    - fileinfo
+    - zip 
+    - xml
+    - tokenizer
+    - ctype
+    - gd (لمعالجة الصور)
+  - **إعدادات PHP الموصى بها**:
+    - memory_limit: 128M أو أكثر
+    - max_execution_time: 60 ثانية أو أكثر
+    - upload_max_filesize: 20M أو أكثر
+    - post_max_size: 20M أو أكثر
+
+- **قاعدة البيانات**: أحد الخيارات التالية:
+  - **MySQL** >= 5.7 (موصى به لبيئات الإنتاج)
+  - **MariaDB** >= 10.3
+  - **SQLite** >= 3.8.8 (مناسب للبيئات المحلية أو التجريبية)
+
+- **متطلبات أخرى**:
+  - مساحة تخزين: 500MB على الأقل (يوصى بـ 1GB أو أكثر للإنتاج)
+  - أذونات كتابة على المجلدات: storage, bootstrap/cache, public
+  
+### متطلبات التطوير
+- **Composer** >= 2.0
+- **Node.js** >= 14.x (يفضل 16.x أو 18.x)
+- **NPM** >= 6.x أو **Yarn** >= 1.22
+- **Git** >= 2.25
+
+يمكنك التحقق من توافق نظامك مع هذه المتطلبات باستخدام:
+```bash
+php tests/compatibility-check.php
+```
 
 ---
 
@@ -64,7 +127,12 @@
 git clone https://github.com/jaksws/jak-travel-sys.git
 cd jak-travel-sys
 
+# تثبيت اعتماديات PHP
 composer install
+
+# إذا واجهتك رسالة "Class TestClass located in ./tests/compatibility-check.php does not comply with psr-4 autoloading standard"
+# فهذا طبيعي ولا يؤثر على عمل النظام. هذا ملف اختبار للتوافق فقط.
+
 cp .env.example .env
 php artisan key:generate
 
@@ -77,7 +145,7 @@ php artisan db:seed
 # إعداد حساب المسؤول (Admin)
 php artisan app:setup-admin-user
 
-> **ملاحظة**: يتحقق الأمر تلقائيًا من نوع المستخدم المسؤول المتاح في النظام. سيبحث عن عمود يحدد دور المستخدم ('role' أو 'user_type' أو 'type') ثم يحاول تحديد القيمة المناسبة للمسؤول (يفضل 'admin'). إذا لم تكن 'admin' قيمة صالحة، سيستخدم بديلاً مناسباً (مثل 'superadmin' أو 'agency') أو يطلب منك اختيار القيمة المناسبة من القيم المتاحة.
+> **ملاحظة**: يتحقق الأمر تلقائيًا من نوع المستخدم المسؤول المتاح في النظام. سيبحث عن عمود يحدد دور المستخدم ('role') ثم يحاول تحديد القيمة المناسبة للمسؤول (يفضل 'admin'). إذا لم تكن 'admin' قيمة صالحة، سيستخدم بديلاً مناسباً (مثل 'superadmin' أو 'agency') أو يطلب منك اختيار القيمة المناسبة من القيم المتاحة.
 
 > للتأكد من صحة الإعداد بعد إنشاء المستخدم، سيعرض الأمر ملخصًا يوضح نوع المستخدم المسؤول الذي تم إنشاؤه.
 
@@ -87,23 +155,25 @@ npm run build
 
 # تشغيل التطبيق
 php artisan serve
-```
 
-> التطبيق سيكون متاحًا على: `http://localhost:8000`
+# ملاحظات إضافية:
+# - تأكد من أن جميع المتطلبات مثبتة بشكل صحيح قبل تشغيل التطبيق.
+# - إذا واجهت أي مشاكل، تحقق من إعدادات البيئة في ملف .env.
+# - يمكنك استخدام الأمر `php artisan app:check-all` لإجراء فحص شامل للتطبيق.
 
-### التحقق من تكامل النظام مع قاعدة البيانات
+---
 
-للتأكد من تكامل ميزات النظام مع قاعدة البيانات، يمكنك تشغيل الأمر التالي:
+## ⚠️ ملاحظة هامة حول حساب المسؤول (Admin)
 
-```bash
-php artisan app:check-features-db-integrity
-```
-
-سيقوم هذا الأمر بالتحقق من:
-- وجود جداول قاعدة البيانات اللازمة للميزات المفعّلة
-- وجود مستخدمين بدور مسؤول (Admin) وتكوينهم الصحيح
-- صلاحيات المسؤول ومدى تكاملها مع النظام
-- الإعدادات الضرورية للنظام
+> لكي يعمل النظام بكفاءة وتنجح جميع الفحوصات الشاملة، يجب التأكد من وجود مستخدم واحد على الأقل يحمل وسم is_admin=1 في جدول المستخدمين (users)، بغض النظر عن قيمة role.
+>
+> إذا لم يكن لديك مستخدم مسؤول، يمكنك إنشاؤه بسهولة عبر الأمر:
+>
+> ```bash
+> php artisan app:setup-admin-user
+> ```
+>
+> سيقوم هذا الأمر بإنشاء أو تحديث حساب مسؤول فعلي في قاعدة البيانات.
 
 ---
 
@@ -181,7 +251,7 @@ resources/
     └── partials/            # أجزاء الواجهة المشتركة
 ```
 
-## نظام تعدد العملات
+## 💱 نظام تعدد العملات
 
 يوفر النظام دعماً كاملاً لتعدد العملات بالمميزات التالية:
 
@@ -216,7 +286,7 @@ resources/
 
 يمكن إضافة المزيد من العملات حسب احتياجات الوكالة.
 
-## نظام الإشعارات المتكامل
+## 🔔 نظام الإشعارات المتكامل
 
 النظام يوفر آلية إشعارات متكاملة تُبقي جميع الأطراف على اطلاع بالمستجدات:
 
@@ -224,7 +294,7 @@ resources/
 - **إشعارات البريد الإلكتروني** للتنبيهات المهمة
 - **لوحة إشعارات** مركزية لكل مستخدم
 
-## ميزات المظهر والتخصيص
+## 🎨 ميزات المظهر والتخصيص
 
 ### الوضع الليلي/المظلم 🌙
 - **اختيار المظهر**: إمكانية تبديل المظهر بين الفاتح والداكن.
@@ -236,7 +306,7 @@ resources/
 - **توافق كامل مع الجوال**: عرض متجاوب على جميع أحجام الشاشات.
 - **أيقونات وألوان جديدة**: هوية بصرية محدثة.
 
-## البيانات الافتراضية للتجربة
+## 📚 البيانات الافتراضية للتجربة
 
 يمكنك إضافة بيانات افتراضية للتجربة باستخدام الأمر التالي:
 
@@ -257,8 +327,6 @@ php artisan app:seed-demo
 البريد الإلكتروني: test@example.com
 كلمة المرور: 123456
 ```
-
-### الوكالات والمستخدمين الافتراضيين
 
 1. **وكالة اليمن للسفر والسياحة**
    - مدير الوكالة: admin@yemen-travel.com / password123
@@ -309,7 +377,7 @@ php artisan app:seed-demo
    - استخراج تأشيرة سياحية
    - استخراج تأشيرة عمل
 
-## دليل المستخدمين
+## 📖 دليل المستخدمين
 
 ### دليل الأدمن
 
@@ -417,7 +485,7 @@ php artisan app:seed-demo
 2. اطلع على تفاصيل الطلب وتواصل مع الوكالة إذا لزم الأمر
 3. بعد اكتمال الخدمة، يمكنك تقييم الخدمة وإضافة ملاحظات
 
-## واجهة برمجة التطبيقات API
+## 🔗 واجهة برمجة التطبيقات API
 
 يوفر النظام واجهة برمجية (API) تتيح التكامل مع أنظمة أخرى. لاستخدام الـ API، اتبع الخطوات التالية:
 
@@ -436,7 +504,7 @@ php artisan app:seed-demo
 Authorization: Bearer YOUR_API_KEY
 ```
 
-## الإصدارات والتطوير
+## 📦 الإصدارات والتطوير
 
 ### النسخة الحالية (1.0)
 
@@ -457,7 +525,7 @@ Authorization: Bearer YOUR_API_KEY
 
 لمزيد من التفاصيل حول خطة التطوير، راجع [خريطة طريق النسخة 1.1](/VERSION-1-ROADMAP.md).
 
-## تطوير التطبيق
+## 🛠️ تطوير التطبيق
 
 ### إعادة تجميع الأصول أثناء التطوير
 
@@ -486,11 +554,78 @@ npm run build
 
 للمساهمة في المشروع أو الإبلاغ عن أخطاء:
 
-- GitHub: [jak-travel-sys](https://github.com/jaksws/jak-travel-sys)
-- البريد الإلكتروني: admin@jaksws.com
+- **GitHub**: [jak-travel-sys](https://github.com/jaksws/jak-travel-sys)
+- **البريد الإلكتروني**: admin@jaksws.com
 
 ---
 
 ## 📝 الترخيص
 
 هذا المشروع مرخص تحت رخصة MIT.
+
+---
+
+## 📋 اختبارات سلامة قاعدة البيانات
+
+تمت إضافة اختبارات تلقائية للتأكد من سلامة قاعدة البيانات ونجاح الـ migrations والـ seeders:
+
+- **التحقق من وجود الجداول الأساسية**: users, agencies, services, requests, quotes, notifications, transactions, documents, currencies, quote_attachments, payments.
+- **التحقق من الأعمدة الأساسية في الجداول** (مثال: users: id, name, email, password, role, status).
+- **تشغيل Seeder رئيسي**: يتم التأكد من نجاح db:seed.
+- **تشغيل بيانات تجريبية عبر Factories**: يتم إنشاء بيانات demo (وكالة، مستخدمين، خدمات) والتأكد من وجودها.
+
+> هذه الاختبارات موجودة في `tests/Feature/DatabaseStructureTest.php` ويمكن تشغيلها مع جميع اختبارات النظام:
+>
+> ```bash
+> php artisan test --filter=DatabaseStructureTest
+> ```
+
+### ملاحظة حول أمر seed-demo
+- أمر `php artisan app:seed-demo` لا يعمل تلقائياً على قاعدة بيانات الاختبار الخاصة بـ PHPUnit.
+- تم تجاوز ذلك بإنشاء بيانات demo عبر Factories مباشرة في بيئة الاختبار.
+
+---
+
+## 🛠️ Code Style & Linting
+
+- **PHP:** The project uses [PHP CS Fixer](https://github.com/FriendsOfPHP/PHP-CS-Fixer) for code style. Run `vendor/bin/php-cs-fixer fix` to auto-fix style issues.
+- **JS/TS:** The project uses [Prettier](https://prettier.io/) for formatting. Run `npm run prettier:check` to check formatting.
+- **ESLint:** (Recommended) Add ESLint for JavaScript/TypeScript linting. Install with `npm install --save-dev eslint` and run `npx eslint .`.
+
+---
+
+## 🔒 Security
+
+- Never commit real secrets or credentials. Use `.env.example` as a template.
+- Review [SECURITY.md](SECURITY.md) for responsible disclosure and security practices.
+- All secrets in CI/CD must be stored in GitHub Actions secrets.
+
+---
+
+## 🤝 Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines, code style, and PR process.
+
+---
+
+## 🧪 Test Coverage
+
+- Run all tests: `php artisan test`
+- Run with coverage: `php artisan test --coverage`
+- Coverage is reported in CI. Aim for high coverage and add tests for new features.
+
+---
+
+## 📦 Dependency Management
+
+- PHP dependencies: managed via Composer (`composer install`)
+- JS dependencies: managed via npm (`npm install`)
+- Automated updates: [Dependabot](https://github.com/dependabot) is enabled for Composer, npm, and GitHub Actions.
+
+---
+
+## 📝 Changelog
+
+All notable changes are documented in [CHANGELOG.md](CHANGELOG.md). Update it with every release.
+
+---
